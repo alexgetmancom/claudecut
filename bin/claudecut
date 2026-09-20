@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# claudecut — run the stock Claude Code CLI with almost everything cut away.
+#
+# This is a launcher, not a fork. It adds documented CLI flags to a normal
+# `claude` invocation. Your plain `claude` command stays untouched.
+#
+#   claudecut                      start a cut session
+#   claudecut -p "explain x.ts"    headless, still cut
+#   claudecut attach ab12cd34      subcommands pass through UNCUT (see below)
+#   claudecut --preset read-edit   pick a different preset for this run
+#   claudecut --full               this once, run stock Claude Code
+#   claudecut --show               print the exact command, run nothing
+#
+# Why subcommands pass through uncut: session flags like --tools and
+# --system-prompt belong to the default command, not to `attach` or `mcp`.
+# An alias cannot know the difference, because an alias only ever prepends
+# text. That is the entire reason this file is a script and not an alias.
+
+set -euo pipefail
+
+CLAUDECUT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export CLAUDECUT_ROOT
+
+# Optional user overrides: CLAUDECUT_* variables, sourced before the presets.
+CLAUDECUT_CONFIG="${CLAUDECUT_CONFIG:-$HOME/.config/claudecut/config.sh}"
+# shellcheck disable=SC1090
+[ -f "$CLAUDECUT_CONFIG" ] && . "$CLAUDECUT_CONFIG"
+
+# shellcheck source=../lib/presets.sh
+. "$CLAUDECUT_ROOT/lib/presets.sh"
+
+# Resolve the real binary without going through this script again.
+claude_bin="${CLAUDECUT_CLAUDE_BIN:-}"
+if [ -z "$claude_bin" ]; then
+  self="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
+  while IFS= read -r candidate; do
+    [ "$candidate" = "$self" ] && continue
+    claude_bin="$candidate"
+    break
+  done < <(type -a -P claude 2>/dev/null || true)
+fi
+if [ -z "$claude_bin" ]; then
+  echo "claudecut: cannot find the claude CLI in PATH" >&2
+  echo "claudecut: set CLAUDECUT_CLAUDE_BIN to its absolute path" >&2
+  exit 127
+fi
+
+preset="${CLAUDECUT_PRESET:-sh}"
+full=0
+show=0
+
+# Only our own flags are consumed here; everything else goes to Claude Code.
+args=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --preset)   preset="${2:?--preset needs a name}"; shift 2 ;;
+    --preset=*) preset="${1#*=}"; shift ;;
+    --full)     full=1; shift ;;
+    --show)     show=1; shift ;;
+    --presets)  claudecut_presets; exit 0 ;;
+    --)         shift; args+=("$@"); break ;;
+    *)          args+=("$1"); shift ;;
+  esac
+done
+
+# Subcommands take their own options. Adding session flags to them is an error,
+# so they are handed to the CLI exactly as typed.
+subcommand=0
+if [ ${#args[@]} -gt 0 ]; then
+  case "${args[0]}" in
+    agents|attach|auth|auto-mode|doctor|gateway|import|install|logs|mcp|\
+    plugin|plugins|project|respawn|rm|setup-token|stop|kill|ultrareview|\
+    update|upgrade)
+      subcommand=1 ;;
+  esac
+fi
+
+# The MCP config carries absolute paths, so it is generated on this machine
+# rather than committed. Delete it to have it rebuilt.
+if [ "$full" -eq 0 ] && [ "$subcommand" -eq 0 ] && [ ! -f "$CLAUDECUT_MCP_CONFIG" ]; then
+  runtime="${CLAUDECUT_NODE:-}"
+  [ -z "$runtime" ] && runtime="$(command -v bun || command -v node || true)"
+  if [ -z "$runtime" ]; then
+    echo "claudecut: need node 18+ or bun to run the sh server" >&2
+    exit 127
+  fi
+  mkdir -p "$(dirname -- "$CLAUDECUT_MCP_CONFIG")"
+  printf '{"mcpServers":{"sh":{"command":"%s","args":["%s"]}}}\n' \
+    "$runtime" "$CLAUDECUT_ROOT/mini-sh/server.mjs" > "$CLAUDECUT_MCP_CONFIG"
+fi
+
+cmd=("$claude_bin")
+if [ "$full" -eq 0 ] && [ "$subcommand" -eq 0 ]; then
+  while IFS= read -r flag; do
+    [ -n "$flag" ] && cmd+=("$flag")
+  done < <(claudecut_preset_flags "$preset")
+fi
+[ ${#args[@]} -gt 0 ] && cmd+=("${args[@]}")
+
+if [ "$show" -eq 1 ]; then
+  printf '%q ' "${cmd[@]}"
+  printf '\n'
+  exit 0
+fi
+
+exec "${cmd[@]}"
