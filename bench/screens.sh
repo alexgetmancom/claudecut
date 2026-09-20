@@ -120,9 +120,32 @@ cat <<T
 T
 }
 
+# The A/B card: one table, the headline number on top, caveats at the bottom.
+pab() {
+cat <<T
+
+  ${b}~2x LOWER COST ON REAL CODING TASKS${r}
+
+  ${d}claude code vs claudecut${r}
+
+                        ${g}claudecut${r}        ${y}stock${r}
+    ${d}-----------------------------------------------${r}
+    inspect             ${b} \$0.0667${r}      \$0.1203
+    trace               ${b} \$0.0565${r}      \$0.1174
+    startup context     ${b}     895${r}       17,625
+
+  ${d}Same Opus 5 - same repo - 3 runs per task - CLI-reported cost.${r}
+  ${d}Spread between identical runs is ~9%, and the stock arm ran on the${r}
+  ${d}machine's own settings. Method and caveats in the repo.${r}
+
+  ${d}github.com/alexgetmancom/claudecut${r}
+T
+}
+
 case "${1:-all}" in
+  ab) pab ;;
   0) p0 ;;
   1) p1 ;; 2) p2 ;; 3) p3 ;; 4) p4 ;; 5) p5 ;; 6) p6 ;;
-  all) p0; p1; p2; p3; p4; p5; p6 ;;
+  all) pab; p0; p1; p2; p3; p4; p5; p6 ;;
 esac
 echo
