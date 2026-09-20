@@ -69,8 +69,8 @@ subcommand=0
 if [ ${#args[@]} -gt 0 ]; then
   case "${args[0]}" in
     agents|attach|auth|auto-mode|doctor|gateway|import|install|logs|mcp|\
-    plugin|plugins|project|respawn|rm|setup-token|stop|kill|ultrareview|\
-    update|upgrade)
+    plugin|plugins|project|respawn|rm|self-hosted-runner|setup-token|stop|kill|\
+    ultrareview|update|upgrade)
       subcommand=1 ;;
   esac
 fi

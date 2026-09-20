@@ -142,7 +142,8 @@ The Claude API has server-side compaction (`compact-2026-01-12`) and context
 editing (`context-management-2025-06-27` with `clear_tool_uses_20250919`).
 Compaction's page lists its platforms as the Claude API, AWS, Bedrock, Google
 Cloud and Microsoft Foundry, and says nothing about the CLI either way (checked
-2026-09-20, header still `compact-2026-01-12`). The binary settles it anyway.
+2026-09-20). Two beta headers now: `compact-2026-01-12` at a threshold, and
+`compact-2026-09-04` for a summary on demand. The binary settles it anyway.
 
 Searching the v2.1.278 binary for `context-management`, `context-editing`,
 `clear_tool_uses` and `memory_20*` returns nothing. What it does carry is
@@ -151,8 +152,10 @@ client-side compaction, including `compactionCacheCreationTokens` and
 its own model call, and that call is billed like any other.
 
 Anthropic's page on the API version says compaction "requires an additional
-sampling step, which contributes to rate limits and billing". Compaction is not
-a free way to shed context, here or there.
+sampling step, which contributes to rate limits and billing", and its usage
+example bills the compaction step at 180,000 input and 3,500 output tokens on
+top of the 23,000-input message that follows. Compaction is not a free way to
+shed context, here or there.
 
 See [`knobs.md`](knobs.md) for what this leaves you locally.
 

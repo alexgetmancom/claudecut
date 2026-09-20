@@ -118,11 +118,20 @@ way about subscription plans (checked 2026-09-20). The reason it does not reach
 claudecut is simpler and does not depend on the docs: the flag does not exist in
 the CLI, and the beta header is not in the binary.
 
-Worth knowing regardless, because the direction of the billing is documented:
-compaction "requires an additional sampling step, which contributes to rate
-limits and billing", and total tokens for a request are summed across
-`usage.iterations`. Producing a compaction costs a model call over the history
-being summarized; re-applying an existing compaction block does not.
+Worth knowing regardless, because the billing is documented and it confirms what
+compaction costs in general: it "requires an additional sampling step, which
+contributes to rate limits and billing", and the total for a request is summed
+across `usage.iterations`. The page's own usage example shows the compaction
+iteration billing 180,000 input and 3,500 output tokens alongside a 23,000-input
+message — the whole history being summarized, charged as input, on top of the
+message that follows. Re-applying an existing compaction block is free;
+producing a new one is not.
+
+Since 2026-09-04 there is also a second beta header, `compact-2026-09-04`, which
+asks for a summary on demand instead of at a threshold: the request is separate
+from the conversation, returns only a signed compaction block, and can run in
+the background. Same story for claudecut — it is a Messages API parameter, and
+the CLI has no flag for it.
 
 Claude Code compacts client-side instead — the binary carries
 `compactionCacheCreationTokens` and `compactionCacheReadTokens` counters, and no

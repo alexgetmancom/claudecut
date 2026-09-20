@@ -24,7 +24,10 @@ live="$(claude --help 2>&1 \
 missing="$(comm -13 <(printf '%s\n' "$ours") <(printf '%s\n' "$live"))"
 extra="$(comm -23 <(printf '%s\n' "$ours") <(printf '%s\n' "$live"))"
 
-[ -n "$extra" ] && printf 'test: harmless extras (not in this CLI version): %s\n' "$(echo $extra)"
+# Some subcommands are real but hidden from --help, so an "extra" is not
+# automatically dead weight: it may be one of those. `self-hosted-runner` is
+# the known case in 2.1.278.
+[ -n "$extra" ] && printf 'test: extras, hidden or gone: %s\n' "$(echo $extra)"
 
 if [ -n "$missing" ]; then
   printf 'test: FAIL — subcommands this CLI has that claudecut would treat as a prompt:\n'
