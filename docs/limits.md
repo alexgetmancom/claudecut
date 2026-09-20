@@ -27,13 +27,41 @@ Real work adds file contents, command output and reasoning, which cost the same
 under either preset. The advantage shrinks as a session gets longer — and the
 200k window exists to stop sessions from getting that long in the first place.
 
-**Open questions** — the honest list, none of them answered yet:
+---
 
-1. Does a cut session need more turns to finish the same task? Every saved
-   token is wasted if the model has to grope around with `cat` and `rg` where a
-   native tool would have gone straight there.
-2. Does output quality hold? `bench/` measures cost, not correctness. Judging
-   that still means reading the answers.
+## 2026-09-20 — first real task
+
+The table above is fixed overhead. This is the same comparison on actual work:
+the `inspect` task, run against [signal-forge](https://github.com/alexgetmancom/signal-forge),
+a Bun + TypeScript repository. One run each.
+
+| preset | prompt | out | turns | wall | cost |
+|---|---:|---:|---:|---:|---:|
+| `sh` | 15,072 | 803 | 5 | 13s | $0.0826 |
+| `default` | 81,688 | 676 | 4 | 14s | $0.1700 |
+
+**The advantage drops from 11x to 2.06x.** Both presets end up reading the same
+files, and that content costs the same either way. The fixed overhead is what
+gets cut; the work does not.
+
+**The cut session did need an extra turn** — 5 against 4 — searching through the
+shell where a native tool would have gone straight there. It did not erase the
+saving, because an extra turn is cheap when every turn carries 15k instead of
+82k. Wall time came out even.
+
+**Quality held, on this task.** Both named the same entry point, the same CLI
+surface, and the same two files to read first. They differed only on an optional
+third suggestion: `sh` pointed at the poller and source registry, `default` at
+the runbook. Both defensible, different angles.
+
+**Do not over-read this.** One run, one task, one repository. Run-to-run
+variance was not measured. Treat 2.06x as a first data point, not a result.
+
+**Open questions** — partly answered now:
+
+1. ~~Does a cut session need more turns?~~ Yes — one extra on `inspect`, and it
+   cost less than it saved. Whether that holds on longer tasks is unknown.
+2. ~~Does output quality hold?~~ On one task, yes. On one task.
 3. How much does losing subagents hurt on wide, search-heavy tasks? That is the
    case where stock Claude Code should win outright.
 4. Does earlier compaction cost more than it saves? Each compaction is itself a

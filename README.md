@@ -6,8 +6,10 @@ Same CLI, same account, same auth — but the session starts with one tool inste
 of twenty, a 36-token system prompt instead of the default one, and a context
 window capped so it compacts early instead of quietly growing into your limits.
 
-A trivial turn costs **$0.0090 instead of $0.0990**, and the prompt on the wire
-is **895 tokens instead of 17,625**.
+An empty session costs **895 prompt tokens instead of 17,625**. On a real task
+in a real repository, that came out **2x cheaper end to end** — not 20x, because
+reading the code costs the same either way. Both numbers are measured, and the
+second one is the honest one.
 
 ![A cut session, as /context reports it](docs/context.png)
 
@@ -28,6 +30,8 @@ claude     ──►  Claude Code CLI  ──►  api.anthropic.com
 
 ## What gets cut
 
+### Fixed overhead — what a session costs before doing anything
+
 | preset | prompt tokens | one trivial turn | what you keep |
 |---|---:|---:|---|
 | `sh` | 895 | $0.0090 | one shell tool, and nothing else |
@@ -38,8 +42,26 @@ claude     ──►  Claude Code CLI  ──►  api.anthropic.com
 
 Measured on Claude Code v2.1.278, Opus 5 at low effort, one run each, with a
 prompt that uses no tools. Reproduce them yourself in about ten seconds:
-`bench/run.sh --tasks hello`. Details and trade-offs in
-[`docs/presets.md`](docs/presets.md).
+`bench/run.sh --tasks hello`.
+
+### Real work — what actually matters
+
+The `inspect` task, run against a live Bun + TypeScript repository. One run each:
+
+| preset | prompt | out | turns | wall | cost |
+|---|---:|---:|---:|---:|---:|
+| `sh` | 15,072 | 803 | 5 | 13s | **$0.0826** |
+| `default` | 81,688 | 676 | 4 | 14s | $0.1700 |
+
+**2.06x, not 20x.** Both sessions read the same files, and that content is not
+free under any preset — only the overhead gets cut. The cut session also took
+one extra turn, searching through the shell where a native tool would have gone
+straight there; it stayed cheaper anyway, because an extra turn carrying 15k
+costs less than a saved turn carrying 82k. Answers were equivalent in substance.
+
+One run, one task, one repository. Variance unmeasured. Details and trade-offs
+in [`docs/presets.md`](docs/presets.md), the running log in
+[`docs/limits.md`](docs/limits.md).
 
 The `sh` preset means reading, searching and editing all happen through the
 shell — `cat`, `rg`, `sed`, heredocs, `git diff`. In exchange you lose skills,
