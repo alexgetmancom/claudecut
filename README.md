@@ -9,7 +9,32 @@ window capped so it compacts early instead of quietly growing into your limits.
 Built for a $20 Claude Pro plan, where the thing you are actually spending is
 context.
 
+![Half the cost on real coding tasks](bench/screens/pab.png)
+
+On two real tasks against a live TypeScript repo, a cut session cost about half
+what stock Claude Code cost, at comparable answer quality. On a long session it
+keeps roughly twice as much working room after every compaction. Startup context
+drops from 17,625 tokens to 895.
+
+**How much to trust each of those**, because they are not equally solid:
+
+| result | evidence |
+|---|---|
+| The floor after compaction — ~14k cut vs ~36k stock | **Solid.** Two long transcripts, plus four unrelated sessions read back the same way. The gap is far outside run-to-run noise. |
+| Compaction fires at the window minus ~35k, a fixed reserve | **Solid.** Same reserve measured at both a 100k and a 200k window. |
+| Disabling tool search doubles your prompt | **Solid.** Two runs per condition, effect is ~2x against ~9% noise. |
+| ~Half the cost on real tasks | **A trend, not statistics.** Three runs per task, ~9% spread between identical runs, and the stock arm inherited local settings in those runs. |
+| Comparable quality | **Read, not scored.** All twelve short-task answers were compared by hand. Nobody graded the long runs at all. |
+
+The last two are where outside data points would help most — see
+[contributing a data point](docs/limits.md#contributing-a-data-point).
+
+<details>
+<summary>What a cut session looks like from the inside</summary>
+
 ![A cut session, as /context reports it](docs/context.png)
+
+</details>
 
 ```
 claudecut  ──►  Claude Code CLI  ──►  api.anthropic.com
@@ -22,7 +47,8 @@ claude     ──►  Claude Code CLI  ──►  api.anthropic.com
 - Nothing is patched, wrapped or reinstalled — these are documented CLI flags
 - Your plain `claude` command keeps working exactly as before
 - `claudecut --full` gives you stock Claude Code for one run
-- Subcommands like `claudecut attach <id>` pass through uncut
+- Subcommands like `claudecut attach <id>` pass through uncut — use
+  `claudecut --resume <id>` when you want the cut back
 - Presets put back exactly as much as you miss, and the bench prices each one
 
 ## What it costs
@@ -50,7 +76,8 @@ three runs each:
 | `trace` | `sh` | **$0.0565** | 4.33 | 11.7s | 10,561 |
 | `trace` | `default` | $0.1174 | 5.33 | 16.3s | 103,535 |
 
-**Roughly 2x cheaper per task, at equivalent quality.** The 20x gap in session
+**About half the cost per task, at comparable quality** — -45% on `inspect`,
+-52% on `trace`. The 20x gap in session
 overhead does not carry over, because both sessions read the same files and that
 content is not free under any preset. Only the overhead gets cut.
 
@@ -61,9 +88,13 @@ expected to win. They did not: the cut session used *fewer* turns, because one
 Answers matched in substance across all twelve runs, and the single most
 complete one came from the cut preset.
 
-Claude Code v2.1.278, Opus 5 at low effort. Run-to-run variance is large — the
-worst `sh` run costs more than the best `default` run — so three repeats is a
-trend, not statistics. Spreads, method and open questions:
+Claude Code v2.1.278, Opus 5 at low effort. Dollar figures are the CLI's own
+`total_cost_usd` — a measure of traffic at API rates, not of a Pro plan's usage
+limits. Run-to-run variance is large — the worst `sh` run costs more than the
+best `default` run — so three repeats is a trend, not statistics. In these runs
+the stock arm also carried no explicit model, effort or setting sources and
+inherited the machine's own; the bench now pins every arm identically, but these
+numbers predate that. Spreads, method and open questions:
 [`docs/limits.md`](docs/limits.md).
 
 ## Getting started
@@ -156,8 +187,11 @@ between compactions); the cut run did more (12 → 12 → 15 → 20).
 
 Cutting also survives compaction: after three of them, the cut session was still
 running on its single tool. It does not survive a stock resume — `claude
---continue` or `claude attach <id>` comes back with everything, because the
-flags live in the command line. Use `claudecut` for those.
+--continue`, `claude --resume <id>` or `claude attach <id>` comes back with
+everything, because the flags live in the command line. Use `claudecut
+--continue` or `claudecut --resume <id>`. Note that `claudecut attach <id>`
+cannot help: `attach` is a subcommand and rejects session flags, so it is passed
+through and you get a stock session.
 
 Measurements, method and caveats: [`docs/compaction.md`](docs/compaction.md).
 
@@ -186,6 +220,9 @@ shell server · `jq` if you want to run the benchmark
   Same exposure as the built-in Bash tool, through a different door — and with
   permission prompts off, nothing stands between the model and a destructive
   command.
+- **The published task numbers predate the bench's own fix.** The stock arm ran
+  unpinned and inherited local settings; `claudecut_bench_pin` now pins every
+  arm, and a repeat may move those numbers.
 - **Measured on one version**, v2.1.278. Flags and defaults move between
   releases; rerun the bench rather than trusting this README.
 - **One run per preset in the long-session test**, both stopped by hand. The
@@ -195,6 +232,13 @@ shell server · `jq` if you want to run the benchmark
 
 It writes nothing into `~/.claude`. Delete the symlink and the checkout —
 [`docs/uninstall.md`](docs/uninstall.md).
+
+## Where this came from
+
+It started as [one tweet](https://x.com/alexgetmancom/status/2101411232771113143)
+about cutting Claude Code down to almost nothing, and ended as
+[this](https://x.com/alexgetmancom/status/2101683761712636202) — a measured
+answer to what that actually buys you.
 
 ## License
 

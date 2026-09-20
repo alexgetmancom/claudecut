@@ -1,3 +1,5 @@
 .DS_Store
 bench/results/
 mini-sh/mcp.json
+bench/screens/*
+!bench/screens/pab.png
