@@ -161,6 +161,12 @@ flags live in the command line. Use `claudecut` for those.
 
 Measurements, method and caveats: [`docs/compaction.md`](docs/compaction.md).
 
+## The write-up
+
+[`docs/writeup.md`](docs/writeup.md) is the research summary: what was tested,
+which assumptions survived, which didn't, and what the numbers mean in practice.
+Start there if you want the reasoning rather than the reference.
+
 ## Going further
 
 [`docs/knobs.md`](docs/knobs.md) covers every other lever that moves context:
