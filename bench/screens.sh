@@ -98,8 +98,31 @@ cat <<T
 T
 }
 
+# The single panel for a standalone post: the startup number, then the one that
+# actually matters. No per-cycle chain, no cost, no tool search.
+p0() {
+cat <<T
+
+  ${b}STARTUP${r}   ${d}before the session does anything${r}
+
+    ${g}claudecut${r}     ${b}    895${r} tokens
+    ${y}stock${r}         ${b} 17,625${r} tokens
+
+  ${b}AFTER COMPACTION${r}   ${d}100k window${r}
+
+    ${g}claudecut${r}     floor ${b}~14k${r}   ${d}->${r}   ${b}~51k${r} room to work
+    ${y}stock${r}         floor ${b}~36k${r}   ${d}->${r}   ${b}~27k${r} room to work
+
+  ${d}Compaction fires at window - ~35k, so the room left is the reserve${r}
+  ${d}minus the floor. The floor is rebuilt after every single compaction.${r}
+
+  ${d}Claude Code v2.1.278 - Opus 5 low effort - github.com/alexgetmancom/claudecut${r}
+T
+}
+
 case "${1:-all}" in
+  0) p0 ;;
   1) p1 ;; 2) p2 ;; 3) p3 ;; 4) p4 ;; 5) p5 ;; 6) p6 ;;
-  all) p1; p2; p3; p4; p5; p6 ;;
+  all) p0; p1; p2; p3; p4; p5; p6 ;;
 esac
 echo

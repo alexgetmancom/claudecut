@@ -98,6 +98,7 @@ const page = (body, title) => `<!doctype html>
 </div>`;
 
 const TITLES = {
+  0: "claudecut",
   1: "claudecut — startup overhead",
   2: "claudecut — same task, both presets",
   3: "claudecut — after compaction",
@@ -106,7 +107,7 @@ const TITLES = {
   6: "claudecut — the tool search trap",
 };
 
-for (const n of [1, 2, 3, 4, 5, 6]) {
+for (const n of [0, 1, 2, 3, 4, 5, 6]) {
   const ansi = execFileSync(join(root, "bench", "screens.sh"), [String(n)], {
     encoding: "utf8",
   });
