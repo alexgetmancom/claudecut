@@ -46,22 +46,27 @@ prompt that uses no tools. Reproduce them yourself in about ten seconds:
 
 ### Real work — what actually matters
 
-The `inspect` task, run against a live Bun + TypeScript repository. One run each:
+Both bench tasks against a live Bun + TypeScript repository, three runs each:
 
-| preset | prompt | out | turns | wall | cost |
-|---|---:|---:|---:|---:|---:|
-| `sh` | 15,072 | 803 | 5 | 13s | **$0.0826** |
-| `default` | 81,688 | 676 | 4 | 14s | $0.1700 |
+| task | preset | cost | turns | wall | prompt |
+|---|---|---:|---:|---:|---:|
+| `inspect` | `sh` | **$0.0667** | 4.33 | 11.7s | 12,772 |
+| `inspect` | `default` | $0.1203 | 3.67 | 16.0s | 76,275 |
+| `trace` | `sh` | **$0.0565** | 4.33 | 11.7s | 10,561 |
+| `trace` | `default` | $0.1174 | 5.33 | 16.3s | 103,535 |
 
-**2.06x, not 20x.** Both sessions read the same files, and that content is not
-free under any preset — only the overhead gets cut. The cut session also took
-one extra turn, searching through the shell where a native tool would have gone
-straight there; it stayed cheaper anyway, because an extra turn carrying 15k
-costs less than a saved turn carrying 82k. Answers were equivalent in substance.
+**About 2x, not 20x.** Both sessions read the same files, and that content is
+not free under any preset — only the overhead gets cut.
 
-One run, one task, one repository. Variance unmeasured. Details and trade-offs
-in [`docs/presets.md`](docs/presets.md), the running log in
-[`docs/limits.md`](docs/limits.md).
+`trace` is a code-search task, the case where native search tools were supposed
+to win. They did not: the cut session used *fewer* turns, because one `rg` in a
+shell covers what otherwise takes a Glob, then a Grep, then a Read. Answers were
+equivalent in substance across all twelve runs, and the single most complete one
+came from the cut preset.
+
+Variance is large enough to matter — the worst `sh` run costs more than the best
+`default` run. Three repeats is a trend, not statistics. Full numbers, spreads
+and the open questions are in [`docs/limits.md`](docs/limits.md).
 
 The `sh` preset means reading, searching and editing all happen through the
 shell — `cat`, `rg`, `sed`, heredocs, `git diff`. In exchange you lose skills,

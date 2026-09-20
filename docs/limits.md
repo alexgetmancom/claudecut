@@ -57,15 +57,66 @@ the runbook. Both defensible, different angles.
 **Do not over-read this.** One run, one task, one repository. Run-to-run
 variance was not measured. Treat 2.06x as a first data point, not a result.
 
+---
+
+## 2026-09-20 — two tasks, three runs each
+
+Same repository, both bench tasks, three repeats per cell. Twelve real runs.
+
+| task | preset | cost | turns | wall | prompt | out |
+|---|---|---:|---:|---:|---:|---:|
+| `inspect` | `sh` | **$0.0667** | 4.33 | 11.7s | 12,772 | 628 |
+| `inspect` | `default` | $0.1203 | 3.67 | 16.0s | 76,275 | 723 |
+| `trace` | `sh` | **$0.0565** | 4.33 | 11.7s | 10,561 | 736 |
+| `trace` | `default` | $0.1174 | 5.33 | 16.3s | 103,535 | 871 |
+
+1.80x on `inspect`, 2.08x on `trace`. The single-run 2.06x held up.
+
+**`trace` was supposed to be where the cut preset lost.** It is a code-search
+task — find where configuration is loaded, quote the line, explain the failure
+modes — and native search tools should have won it. They did not. The cut
+session used *fewer* turns, 4.33 against 5.33. One `rg` in a shell appears to
+cover what otherwise takes a Glob, then a Grep, then a Read: one round trip
+instead of three.
+
+The context gap widened to 10x on this task, because the stock session was
+carrying 103k tokens per turn by the end of it.
+
+**Quality: parity, checked by reading all six answers.** Every run of `trace`,
+under both presets, landed on `src/config.ts:176`, quoted the same line, and
+described the same failure modes — `ENOENT`, `SyntaxError`, `ZodError`, no
+try/catch anywhere. The most complete answer came from `sh`, which also listed
+all three callers of `loadConfig` with line numbers and noted they all call it
+at module top level, so the process dies at startup. No `default` run did that.
+
+**Variance is large and partly swallows the effect:**
+
+```
+inspect  default  [0.0748, 0.1835, 0.1027]
+inspect  sh       [0.0639, 0.0862, 0.0501]
+trace    default  [0.1620, 0.1022, 0.0881]
+trace    sh       [0.0450, 0.0886, 0.0358]
+```
+
+The worst `sh` run ($0.0886) costs more than the best `default` run ($0.0748).
+The mean favours `sh` in all four cells, but three repeats is a trend, not
+statistics. There is no confidence interval here and it would be dishonest to
+imply one.
+
 **Open questions** — partly answered now:
 
-1. ~~Does a cut session need more turns?~~ Yes — one extra on `inspect`, and it
-   cost less than it saved. Whether that holds on longer tasks is unknown.
-2. ~~Does output quality hold?~~ On one task, yes. On one task.
-3. How much does losing subagents hurt on wide, search-heavy tasks? That is the
-   case where stock Claude Code should win outright.
-4. Does earlier compaction cost more than it saves? Each compaction is itself a
-   model call over the whole transcript.
+1. ~~Does a cut session need more turns?~~ Mixed, and not in the expected
+   direction: more on `inspect` (4.33 vs 3.67), fewer on the search-heavy
+   `trace` (4.33 vs 5.33). Cheaper on both.
+2. ~~Does output quality hold?~~ On two tasks, across six runs each, yes — with
+   the best single answer coming from the cut preset.
+3. How much does losing subagents hurt? Still open. Neither bench task is wide
+   enough to need them; a task spanning many unrelated files would be.
+4. Does earlier compaction cost more than it saves? Still open. No bench run
+   here was long enough to compact even once.
+5. New: how does this hold on a *long* session? Every measurement so far is a
+   single-shot `-p` run. The overhead advantage is paid once per session, so it
+   should decay as a session grows — and that is the shape of real work.
 
 ---
 
