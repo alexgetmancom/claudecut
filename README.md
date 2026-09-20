@@ -137,6 +137,30 @@ and an alias would put session flags in front of `attach`, where the parser
 rejects them. Both verified, with repro steps, in
 [`docs/findings.md`](docs/findings.md).
 
+## Long sessions
+
+Startup overhead is paid once. What a long session actually pays is compaction,
+which rebuilds the session's fixed cost from scratch every cycle.
+
+Run past a 100k window on the same task, the two presets land very differently
+after each compaction:
+
+| preset | floor after compaction | room left to work in |
+|---|---:|---:|
+| `sh` | ~14k | ~51k |
+| `default` | ~36k | ~27k |
+
+Roughly twice the working room, in the same window, for the rest of the session.
+The stock run did less with each cycle (14 → 13 → 11 → 9 → 9 → 6 tool calls
+between compactions); the cut run did more (12 → 12 → 15 → 20).
+
+Cutting also survives compaction: after three of them, the cut session was still
+running on its single tool. It does not survive a stock resume — `claude
+--continue` or `claude attach <id>` comes back with everything, because the
+flags live in the command line. Use `claudecut` for those.
+
+Measurements, method and caveats: [`docs/compaction.md`](docs/compaction.md).
+
 ## Going further
 
 [`docs/knobs.md`](docs/knobs.md) covers every other lever that moves context:
@@ -158,9 +182,8 @@ shell server · `jq` if you want to run the benchmark
   command.
 - **Measured on one version**, v2.1.278. Flags and defaults move between
   releases; rerun the bench rather than trusting this README.
-- **Everything here is a single-shot `-p` run.** Session overhead is paid once,
-  so the advantage should shrink over a long working session. That measurement
-  does not exist yet and is logged as open.
+- **One run per preset in the long-session test**, both stopped by hand. The
+  short-task numbers are three runs each. Neither has a variance estimate.
 
 ## Uninstall
 

@@ -42,14 +42,21 @@ the default set; you name the ones you keep.
 
 ### Capping the context window
 
-`--autocompact 200000`, or `"autoCompactWindow": 200000` in settings. This does
-not shrink the prompt — it makes the session compact earlier instead of growing
-into a larger window.
+`--autocompact 100000`, or `"autoCompactWindow"` in settings. This does not
+shrink the prompt — it decides when the session compacts instead of growing
+further.
 
-On a long session this matters more than session overhead does, because
-overhead is paid once while a bloated transcript is paid on every single turn.
-In the bench runs, stock sessions were carrying 76k–103k tokens per turn by the
-end of a four-turn task.
+Compaction fires at **the window minus roughly 35,000 tokens**, a fixed reserve
+rather than a percentage, which is why values under 100k are rejected.
+
+What survives compaction is the session's fixed cost — system prompt and tool
+schemas — and it is rebuilt after every single compaction. Measured floors:
+about 14k for the `sh` preset against about 36k for stock. In a 100k window that
+is ~51k of usable room per cycle against ~27k.
+
+This is where cutting tools pays off most: startup overhead is paid once, but
+the floor comes back for the rest of the session. See
+[`compaction.md`](compaction.md).
 
 ## Tier 2 — measured, small
 
@@ -120,9 +127,9 @@ Claude Code compacts client-side instead — the binary carries
 `context-management` or `clear_tool_uses` beta headers appear in it at all.
 
 The consequence for a $20 plan: **compaction is not free, so triggering it
-often is a real cost.** Whether an early 200k window pays for itself, or whether
-starting a fresh session beats compacting, is not measured here. It is the next
-thing worth measuring.
+often is a real cost.** A measured run billed 3.6M prompt tokens for three
+compaction cycles on a cut session and 5.8M for five on a stock one — see
+[`compaction.md`](compaction.md).
 
 ### Context editing (`clear_tool_uses`)
 

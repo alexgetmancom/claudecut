@@ -155,3 +155,33 @@ on top of the message that follows. Compaction is not a free way to shed
 context.
 
 See [`knobs.md`](knobs.md) for what this leaves you locally.
+
+## 12. Auto-compaction triggers at the window minus ~35k
+
+`--autocompact` sets a window, but compaction fires well before it. The unused
+reserve is roughly constant rather than proportional:
+
+| window | observed triggers | reserve |
+|---:|---|---:|
+| 200,000 | 162,285 – 167,410 | ~33k–38k |
+| 100,000 | 60,071 – 67,255 | ~33k–40k |
+
+Measured from session transcripts, which record `usage` per API call. This is
+also why the flag rejects anything under 100k: a 50k window would put the
+trigger below where a session lands after compacting.
+
+## 13. Cutting survives compaction — but not a stock resume
+
+After three consecutive compactions, a session launched with `--tools=` was
+still running on its single MCP tool, with no stock tool appearing at any point.
+`--resume` with the same flags preserved it too.
+
+Tools are fixed by the command line at launch; compaction rewrites the
+conversation, not the session's configuration.
+
+What *does* bring the stock toolset back is resuming without the flags — plain
+`claude --continue`, `claude --resume <id>` or `claude attach <id>`. Same root
+cause as finding 5: the flags live in the command line. Use `claudecut` for
+those too.
+
+Full measurements in [`compaction.md`](compaction.md).

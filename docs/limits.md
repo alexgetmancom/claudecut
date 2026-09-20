@@ -1,11 +1,13 @@
 # Measurements
 
 What a cut session actually costs, measured rather than asserted. Every number
-here comes from `bench/run.sh`, which reads cost and tokens out of the CLI's own
-`--output-format json` — no parsing of terminal output, nothing estimated.
+here comes from `bench/run.sh` and `bench/longrun.sh`, which read cost and
+tokens out of the CLI's own `--output-format json` and out of saved session
+transcripts — no parsing of terminal output, nothing estimated.
 
 **Setup:** Claude Code v2.1.278 · Opus 5 at low effort · Claude Pro ($20/mo) ·
-200k auto-compact window · test repository
+200k auto-compact window for the short tasks, 100k for the long-session test ·
+test repository
 [signal-forge](https://github.com/alexgetmancom/signal-forge), Bun + TypeScript.
 
 ## Session overhead
@@ -77,6 +79,29 @@ to read first, differing only on an optional third suggestion.
 
 Parity on these tasks. Not a claim about every task.
 
+## Long sessions
+
+Everything above is a single-shot run. The behaviour that decides a long working
+session is compaction, and it favours the cut preset more strongly than startup
+overhead does.
+
+Both presets were run past their context window on the same file-by-file audit
+task, with `--autocompact 100000`:
+
+| preset | floor after compaction | usable room per cycle |
+|---|---|---:|
+| `sh` | 13,440 · 21,532 · 8,416 | ~51k |
+| `default` | 35,628 · 32,190 · 37,476 · 38,082 · 36,363 | ~27k |
+
+The floor is what the session costs at the start of every cycle, rebuilt from
+scratch after each compaction. It does not drift upward with repeated
+compaction — both presets oscillate around a level set by the preset itself.
+
+Work done between compactions moved in opposite directions: `sh` went
+12 → 12 → 15 → 20 tool calls per segment, `default` went 14 → 13 → 11 → 9 → 9 → 6.
+
+Full tables, method and caveats: [`compaction.md`](compaction.md).
+
 ## How much to trust this
 
 Three repeats is a trend, not statistics. The per-run spread:
@@ -95,14 +120,16 @@ conditions is about 9%.
 
 ## Open questions
 
-1. **Long sessions.** Every measurement above is a single-shot `-p` run.
-   Overhead is paid once per session, so the advantage should shrink as a
-   session grows — and long sessions are what real work looks like.
+1. **Repeats on the long-session test.** One run per preset, both stopped by
+   hand. The floor gap is far too large to be noise, but there is no variance
+   estimate for it yet.
 2. **Subagents.** Neither bench task is wide enough to need them. A task
    spanning many unrelated files would be.
-3. **Compaction economics.** No run here was long enough to compact even once.
-   Compaction bills for the history it summarizes, so whether an early 200k
-   window pays for itself is unmeasured. See [`knobs.md`](knobs.md).
+3. **Window size.** Whether a smaller window beats a larger one over a whole
+   session — more compaction cycles, but a smaller history summarized each time
+   — is still unmeasured.
+4. **Quality across compaction.** Both long runs were measured by cost and
+   context, not by whether the audit they produced was correct.
 
 ## Contributing a data point
 
@@ -111,6 +138,12 @@ dated entry with the summary table:
 
 ```bash
 bench/run.sh --tasks inspect,trace --repeat 3 --dir ~/code/your-repo
+```
+
+Long-session data points are just as welcome, and rarer:
+
+```bash
+bench/longrun.sh --dir ~/code/your-repo --window 100000
 ```
 
 Include your Claude Code version, model, effort level and plan. Numbers without
