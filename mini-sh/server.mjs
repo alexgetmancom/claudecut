@@ -11,6 +11,20 @@ const SHELL = process.env.CLAUDECUT_SHELL || "zsh";
 const TIMEOUT_MS = Number(process.env.CLAUDECUT_SH_TIMEOUT_MS || 600000);
 const MAX_OUTPUT = Number(process.env.CLAUDECUT_SH_MAX_OUTPUT || 60000);
 
+// Keep both ends of a long output. The head usually says what ran, the tail
+// says how it went; dropping either silently is how a truncated result gets
+// mistaken for the whole story.
+const clip = (text) => {
+  if (text.length <= MAX_OUTPUT) return text;
+  const half = Math.floor(MAX_OUTPUT / 2);
+  const dropped = text.length - half * 2;
+  return (
+    text.slice(0, half) +
+    `\n\n[... ${dropped.toLocaleString("en-US")} characters truncated ...]\n\n` +
+    text.slice(-half)
+  );
+};
+
 const send = (msg) => process.stdout.write(JSON.stringify(msg) + "\n");
 
 const tool = {
@@ -53,10 +67,23 @@ createInterface({ input: process.stdin }).on("line", (line) => {
         maxBuffer: 1 << 26,
       });
       const body = `${r.stdout ?? ""}${r.stderr ?? ""}`;
-      const text = body + (r.status ? `\n[exit ${r.status}]` : "");
+      const notes = [];
+      // spawnSync reports a timeout or a failure to start in `error`, with no
+      // exit status at all. Saying so beats returning an empty result.
+      if (r.error) {
+        notes.push(
+          r.error.code === "ETIMEDOUT"
+            ? `[timed out after ${TIMEOUT_MS}ms]`
+            : `[failed to run: ${r.error.message}]`,
+        );
+      }
+      if (r.signal) notes.push(`[killed by ${r.signal}]`);
+      if (r.status) notes.push(`[exit ${r.status}]`);
+
+      const text = clip(body) + (notes.length ? `\n${notes.join(" ")}` : "");
       return reply({
-        content: [{ type: "text", text: text.slice(-MAX_OUTPUT) || "(no output)" }],
-        isError: r.status !== 0,
+        content: [{ type: "text", text: text || "(no output)" }],
+        isError: r.status !== 0 || Boolean(r.error),
       });
     }
 

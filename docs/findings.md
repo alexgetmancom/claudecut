@@ -139,9 +139,10 @@ handle deferred schemas poorly — pay double for it.
 ## 11. Server-side compaction is not available to the CLI
 
 The Claude API has server-side compaction (`compact-2026-01-12`) and context
-editing (`context-management-2025-06-27` with `clear_tool_uses_20250919`). Both
-are documented as API-only, and compaction's own page states it is not available
-on a Claude Code subscription.
+editing (`context-management-2025-06-27` with `clear_tool_uses_20250919`).
+Compaction's page lists its platforms as the Claude API, AWS, Bedrock, Google
+Cloud and Microsoft Foundry, and says nothing about the CLI either way (checked
+2026-09-20, header still `compact-2026-01-12`). The binary settles it anyway.
 
 Searching the v2.1.278 binary for `context-management`, `context-editing`,
 `clear_tool_uses` and `memory_20*` returns nothing. What it does carry is
@@ -149,10 +150,9 @@ client-side compaction, including `compactionCacheCreationTokens` and
 `compactionCacheReadTokens` counters — so Claude Code summarizes locally, with
 its own model call, and that call is billed like any other.
 
-Anthropic's documented billing for the API version makes the general shape
-clear: a compaction over a 180k-token history bills 180k input plus 3.5k output,
-on top of the message that follows. Compaction is not a free way to shed
-context.
+Anthropic's page on the API version says compaction "requires an additional
+sampling step, which contributes to rate limits and billing". Compaction is not
+a free way to shed context, here or there.
 
 See [`knobs.md`](knobs.md) for what this leaves you locally.
 
@@ -181,7 +181,9 @@ conversation, not the session's configuration.
 
 What *does* bring the stock toolset back is resuming without the flags — plain
 `claude --continue`, `claude --resume <id>` or `claude attach <id>`. Same root
-cause as finding 5: the flags live in the command line. Use `claudecut` for
-those too.
+cause as finding 5: the flags live in the command line. `claudecut --continue`
+and `claudecut --resume <id>` keep the cut; `claudecut attach <id>` cannot,
+because `attach` is a subcommand and rejects session flags — claudecut hands it
+through untouched and the session comes back stock.
 
 Full measurements in [`compaction.md`](compaction.md).

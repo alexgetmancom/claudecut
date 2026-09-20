@@ -3,19 +3,32 @@
 What a cut session actually costs, measured rather than asserted. Every number
 here comes from `bench/run.sh` and `bench/longrun.sh`, which read cost and
 tokens out of the CLI's own `--output-format json` and out of saved session
-transcripts — no parsing of terminal output, nothing estimated.
+transcripts — no parsing of terminal output. The one estimated figure anywhere
+is the summary size in the compaction report, which divides summary characters
+by 3.7; it is labelled as an estimate wherever it appears.
+
+All dollar figures are the CLI's own `total_cost_usd`, which is what the same
+traffic would cost at API rates. These runs went through a Pro subscription,
+which bills by usage limits rather than per token, so the numbers are a
+comparable measure of traffic, not money withdrawn from anything.
 
 **Setup:** Claude Code v2.1.278 · Opus 5 at low effort · Claude Pro ($20/mo) ·
 200k auto-compact window for the short tasks, 100k for the long-session test ·
 test repository
 [signal-forge](https://github.com/alexgetmancom/signal-forge), Bun + TypeScript.
 
+One caveat on method: in these runs the `default` arm carried no explicit
+`--model`, `--effort` or `--setting-sources`, so it inherited whatever the
+runner's own settings said, while the cut arms pinned theirs. The bench now
+pins every arm identically (`claudecut_bench_pin` in `lib/presets.sh`), but the
+numbers on this page predate that, and a repeat may move them.
+
 ## Session overhead
 
 The `hello` task sends `Reply with exactly: ok`, which needs no tools. The
 number is purely what a session costs before doing anything.
 
-| preset | prompt tokens | cost of one trivial turn |
+| preset | prompt tokens | CLI-reported cost of one trivial turn |
 |---|---:|---:|
 | `sh` | 895 | $0.0090 |
 | `default` | 17,625 | $0.0990 |
@@ -53,7 +66,8 @@ one carried 10k. Cost lags behind because most of those tokens are cache reads.
 ## Turns and search
 
 A shell is not obviously worse at code search than native tools, and on these
-tasks it was better. `trace` is the search-heavy one, and the cut session used
+tasks it was better. Read narrowly: in our runs the stock agent tended to use
+several native calls where one composed shell command was enough. `trace` is the search-heavy one, and the cut session used
 *fewer* turns — 4.33 against 5.33. One `rg` appears to cover what otherwise
 takes a Glob, then a Grep, then a Read: one round trip instead of three.
 

@@ -94,7 +94,7 @@ for (const f of files.sort()) {
   );
 
   if (compactions.length) {
-    console.log("| # | triggered at | floor after | summary tokens | floor rise |");
+    console.log("| # | triggered at | floor after | est. summary tokens | floor rise |");
     console.log("|---|---:|---:|---:|---:|");
     let prevFloor = null;
     compactions.forEach((c, i) => {

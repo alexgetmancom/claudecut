@@ -60,6 +60,12 @@ for preset in "${preset_list[@]}"; do
     default) flags=(--autocompact "$WINDOW") ;;
   esac
 
+  # Both arms get the same model, effort and settings sources. Without this the
+  # stock arm would inherit whatever the runner's own settings files say.
+  while IFS= read -r flag; do
+    flags+=("$flag")
+  done < <(claudecut_bench_pin)
+
   echo "longrun: starting $preset ..."
   start=$(date +%s)
   ( cd "$WORKDIR" && env -u ANTHROPIC_API_KEY claude \

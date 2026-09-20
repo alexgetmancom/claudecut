@@ -73,6 +73,11 @@ for task in "${task_list[@]}"; do
     while IFS= read -r flag; do
       [ -n "$flag" ] && flags+=("$flag")
     done < <(claudecut_preset_flags "$preset")
+    # Pin model, effort and settings sources for every arm, including the
+    # "default" one, so the comparison does not depend on the runner's config.
+    while IFS= read -r flag; do
+      flags+=("$flag")
+    done < <(claudecut_bench_pin)
 
     for n in $(seq 1 "$repeat"); do
       label="$task.$preset.$n"

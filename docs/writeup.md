@@ -54,10 +54,12 @@ this. That was the whole reason the task existed — to find where cutting hurts
 
 The cut session used **fewer** turns. 4.33 against 5.33.
 
-In hindsight it's obvious. One `rg` with a decent pattern is one round trip. The
-native path is Glob, then Grep, then Read — three round trips, each one dragging
-its result into context. A shell isn't a degraded version of the native tools
-for search; it's a composable one. `rg -n 'loadConfig' src | head -20` has no
+In hindsight it's obvious. One `rg` with a decent pattern is one round trip. In
+our runs the stock agent tended to reach for several native calls — Glob, then
+Grep, then Read — where one composed shell command would have done, and each of
+those round trips drags its result into context. That's what the stock agent did
+on these two tasks, not a law about the native tools. A shell isn't a degraded
+version of them for search; it's a composable one. `rg -n 'loadConfig' src | head -20` has no
 native equivalent that costs one call.
 
 I'd now say the "you lose search quality" intuition is backwards for anyone

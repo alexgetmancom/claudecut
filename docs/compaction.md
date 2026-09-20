@@ -117,7 +117,11 @@ command and the preset flags go with it.
 **What does restore the stock toolset** is resuming without those flags — plain
 `claude --continue`, `claude --resume <id>` or `claude attach <id>`. The flags
 live in the command line, not in the session, so a resume started any other way
-comes back stock. Use `claudecut --continue` and `claudecut attach <id>`.
+comes back stock. Resume with `claudecut --continue` or
+`claudecut --resume <id>`, which are flags on the session command and so carry
+the preset. `claudecut attach <id>` does **not** help: `attach` is a subcommand
+and rejects `--tools`/`--system-prompt` (finding 4), so claudecut passes it
+straight through and you get a stock session.
 
 ## Caveats
 

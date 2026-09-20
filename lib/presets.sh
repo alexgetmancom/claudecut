@@ -20,6 +20,27 @@ CLAUDECUT_EFFORT="${CLAUDECUT_EFFORT:-low}"
 # The one-tool MCP server.
 CLAUDECUT_MCP_CONFIG="${CLAUDECUT_MCP_CONFIG:-$CLAUDECUT_ROOT/mini-sh/mcp.json}"
 
+# --- Benchmark-only knobs -----------------------------------------------------
+#
+# The launcher never uses these. They exist because a benchmark has to compare
+# like with like: without them the cut presets would run at CLAUDECUT_EFFORT
+# while the "default" arm silently picked up whatever model and effort level
+# your own settings files happen to set. Both arms get these, appended last so
+# they win over anything a preset set earlier.
+CLAUDECUT_BENCH_MODEL="${CLAUDECUT_BENCH_MODEL:-claude-opus-5}"
+CLAUDECUT_BENCH_EFFORT="${CLAUDECUT_BENCH_EFFORT:-low}"
+
+# Settings sources the benchmark is allowed to read. Empty means "none", so a
+# stray autoCompactWindow or modelSettings in your own config cannot skew a run.
+CLAUDECUT_BENCH_SETTING_SOURCES="${CLAUDECUT_BENCH_SETTING_SOURCES-}"
+
+claudecut_bench_pin() {
+  [ -n "$CLAUDECUT_BENCH_MODEL" ]  && printf '%s\n' --model  "$CLAUDECUT_BENCH_MODEL"
+  [ -n "$CLAUDECUT_BENCH_EFFORT" ] && printf '%s\n' --effort "$CLAUDECUT_BENCH_EFFORT"
+  printf '%s\n' --setting-sources "$CLAUDECUT_BENCH_SETTING_SOURCES"
+  return 0
+}
+
 claudecut_presets() {
   printf '%s\n' sh sh-read read-edit restricted default
 }

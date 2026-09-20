@@ -112,15 +112,17 @@ The Claude API has server-side compaction: the `compact-2026-01-12` beta header
 with a `compact_20260112` strategy in `context_management.edits`, which
 summarizes the conversation on the server past a configurable threshold.
 
-It is **API-only, and explicitly not available on a Claude Code subscription**.
+The page lists its platforms as the Claude API, Claude Platform on AWS, Amazon
+Bedrock, Google Cloud and Microsoft Foundry — no CLI, and it says nothing either
+way about subscription plans (checked 2026-09-20). The reason it does not reach
+claudecut is simpler and does not depend on the docs: the flag does not exist in
+the CLI, and the beta header is not in the binary.
 
-Worth knowing regardless, because the billing model is documented and it
-confirms what compaction costs in general: the compaction step bills for the
-entire history being summarized as input tokens, on top of the actual response.
-In Anthropic's own example, one compaction over a 180k-token history is billed
-as 180k input plus 3.5k output, *in addition to* the 23k-input message that
-followed. Re-applying an existing compaction block is free; producing a new one
-is not.
+Worth knowing regardless, because the direction of the billing is documented:
+compaction "requires an additional sampling step, which contributes to rate
+limits and billing", and total tokens for a request are summed across
+`usage.iterations`. Producing a compaction costs a model call over the history
+being summarized; re-applying an existing compaction block does not.
 
 Claude Code compacts client-side instead — the binary carries
 `compactionCacheCreationTokens` and `compactionCacheReadTokens` counters, and no
