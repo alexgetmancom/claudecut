@@ -116,3 +116,42 @@ turn on:
   effort level per model. Also `--effort`.
 
 These are ordinary supported settings; unlike findings 1 and 2, they apply.
+
+## 10. Tool search is on by default, and halves the prompt
+
+Claude Code sends tool *names* in the prompt and loads full schemas on demand.
+Disabling that doubles the prompt:
+
+| setting | prompt tokens |
+|---|---:|
+| default | 17,026 / 18,586 |
+| `ENABLE_TOOL_SEARCH=false` | 36,345 / 39,403 |
+
+Two runs per condition, measured as `input + cache_write + cache_read` from
+`--output-format json`. Baseline variance between identical runs is about 9%,
+so this effect is far outside the noise.
+
+Worth stating plainly because the advice runs backwards from everything else
+here: **do not set this variable.** Aliases that carry
+`ENABLE_TOOL_SEARCH=false` — some proxy setups do, for third-party models that
+handle deferred schemas poorly — pay double for it.
+
+## 11. Server-side compaction is not available to the CLI
+
+The Claude API has server-side compaction (`compact-2026-01-12`) and context
+editing (`context-management-2025-06-27` with `clear_tool_uses_20250919`). Both
+are documented as API-only, and compaction's own page states it is not available
+on a Claude Code subscription.
+
+Searching the v2.1.278 binary for `context-management`, `context-editing`,
+`clear_tool_uses` and `memory_20*` returns nothing. What it does carry is
+client-side compaction, including `compactionCacheCreationTokens` and
+`compactionCacheReadTokens` counters — so Claude Code summarizes locally, with
+its own model call, and that call is billed like any other.
+
+Anthropic's documented billing for the API version makes the general shape
+clear: a compaction over a 180k-token history bills 180k input plus 3.5k output,
+on top of the message that follows. Compaction is not a free way to shed
+context.
+
+See [`knobs.md`](knobs.md) for what this leaves you locally.

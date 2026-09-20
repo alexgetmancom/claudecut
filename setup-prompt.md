@@ -144,7 +144,8 @@ skills, subagents and web search are gone until I ask for them back.
 
 - **Change preset:** edit `CLAUDECUT_PRESET` in the config file. One line.
 - **Retune:** adjust `CLAUDECUT_*` variables. Add no new variable without a
-  reason you can state.
+  reason you can state. [`docs/knobs.md`](docs/knobs.md) lists every other lever
+  that moves context, and which ones are measured.
 - **Remove:** follow [`docs/uninstall.md`](docs/uninstall.md) — drop the PATH
   entry or symlink, delete the checkout, delete `~/.config/claudecut`. Ask
   before touching anything in `~/.claude`, since none of it belongs to this

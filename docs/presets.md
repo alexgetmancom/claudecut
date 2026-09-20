@@ -6,8 +6,10 @@ A preset is a set of stock Claude Code flags. Pick one with `--preset`, or set
 
 ## The numbers
 
-> These are **fixed overhead**, not task cost. On a real task the gap narrows to
-> about 2x — see [`docs/limits.md`](limits.md) for that measurement.
+This table is **session overhead**: what a session costs before it has done any
+work. A real task adds file contents and command output, which cost the same
+under every preset, so measured end to end a cut session comes out about 2x
+cheaper per task — see [`docs/limits.md`](limits.md).
 
 Measured with `bench/run.sh --tasks hello`, which sends a prompt that needs no
 tools at all (`Reply with exactly: ok`). It isolates what a session costs before
