@@ -124,19 +124,19 @@ T
 pab() {
 cat <<T
 
-  ${b}~2x LOWER COST ON REAL CODING TASKS${r}
+  ${b}~HALF THE COST ON REAL CODING TASKS${r}
 
   ${d}claude code vs claudecut${r}
 
-                        ${g}claudecut${r}        ${y}stock${r}
-    ${d}-----------------------------------------------${r}
-    inspect             ${b} \$0.0667${r}      \$0.1203
-    trace               ${b} \$0.0565${r}      \$0.1174
-    startup context     ${b}     895${r}       17,625
+                     ${g}claudecut${r}      ${y}stock${r}
+    ${d}--------------------------------------------${r}
+    inspect          ${b}  \$0.0667${r}    \$0.1203      ${g}-45%${r}
+    trace            ${b}  \$0.0565${r}    \$0.1174      ${g}-52%${r}
 
-  ${d}Same Opus 5 - same repo - 3 runs per task - CLI-reported cost.${r}
-  ${d}Spread between identical runs is ~9%, and the stock arm ran on the${r}
-  ${d}machine's own settings. Method and caveats in the repo.${r}
+    startup context: ${b}895${r} vs ${b}17,625${r} tokens
+
+  ${d}Same repo - 3 runs per task - CLI-reported cost${r}
+  ${d}Original stock runs inherited local settings. Caveats in the repo.${r}
 
   ${d}github.com/alexgetmancom/claudecut${r}
 T
