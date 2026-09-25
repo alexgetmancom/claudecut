@@ -8,8 +8,35 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 
 const SHELL = process.env.CLAUDECUT_SHELL || "zsh";
+// Where every command starts. Inherited from wherever claudecut was launched,
+// which is the repository you are working in; nothing about any project is
+// hardcoded. Passing it to the shell explicitly makes it a guarantee, and
+// naming it in the tool description below is what lets the model stop writing
+// `cd /long/absolute/path &&` in front of every command: the path is then paid
+// once in the schema instead of once per call.
+const CWD = process.env.CLAUDECUT_CWD || process.cwd();
 const TIMEOUT_MS = Number(process.env.CLAUDECUT_SH_TIMEOUT_MS || 600000);
 const MAX_OUTPUT = Number(process.env.CLAUDECUT_SH_MAX_OUTPUT || 60000);
+
+// Two lines that run before every command, because measured sessions lose
+// round trips to them: zsh aborts a command when an unquoted glob matches
+// nothing (`grep --include=*.ts` -> "no matches found") and expands a leading
+// `=` as a filename (`echo === x ===` -> "=== not found"); macOS ships no
+// `timeout`, so a `timeout 120 cmd` is a command-not-found rather than a
+// limit. The setopts are zsh-only and silently ignored elsewhere; the shim
+// defines `timeout` only when the real one is absent, and alarm(2) gives it
+// the same semantics rather than quietly dropping the limit.
+//
+// The color and pager variables are the same kind of saving, paid in context
+// rather than round trips: one measured session carried 26k characters of ANSI
+// escapes and box-drawing rules through every later request, which re-read them
+// ~790k times in total. Nothing reads color out of a JSON-RPC pipe anyway.
+const PRELUDE =
+  process.env.CLAUDECUT_SH_PRELUDE ??
+  'setopt NO_NOMATCH NO_EQUALS 2>/dev/null; ' +
+  'export NO_COLOR=1 FORCE_COLOR=0 CLICOLOR=0 GIT_PAGER=cat PAGER=cat; ' +
+  'command -v timeout >/dev/null 2>&1 || ' +
+  'timeout() { perl -e \'alarm shift; exec @ARGV\' "$@"; }; ';
 
 // Keep both ends of a long output. The head usually says what ran, the tail
 // says how it went; dropping either silently is how a truncated result gets
@@ -29,7 +56,10 @@ const send = (msg) => process.stdout.write(JSON.stringify(msg) + "\n");
 
 const tool = {
   name: "sh",
-  description: "Run a shell command in the project directory. Returns stdout+stderr.",
+  description:
+    `Run a shell command; returns stdout+stderr. Every call starts in ${CWD}, ` +
+    "so no cd is needed. Each call is a separate round trip that re-reads the " +
+    "whole context, so put independent steps in one call with && or ;.",
   inputSchema: {
     type: "object",
     properties: { cmd: { type: "string" } },
@@ -61,7 +91,8 @@ createInterface({ input: process.stdin }).on("line", (line) => {
 
     case "tools/call": {
       // A login shell, so PATH and tooling match the user's own terminal.
-      const r = spawnSync(SHELL, ["-lc", req.params.arguments.cmd], {
+      const r = spawnSync(SHELL, ["-lc", PRELUDE + req.params.arguments.cmd], {
+        cwd: CWD,
         encoding: "utf8",
         timeout: TIMEOUT_MS,
         maxBuffer: 1 << 26,
