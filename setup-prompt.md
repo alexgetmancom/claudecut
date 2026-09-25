@@ -38,7 +38,8 @@ Show me the current state as a short table. If nothing exists, say so in a line.
 For an install or a preset change, also ask which preset should be the default,
 and state the trade-off for each in one sentence. Do not editorialise beyond
 that; [`docs/presets.md`](docs/presets.md) has the detail and the measured
-numbers. The options are `sh`, `sh-read`, `read-edit`, `restricted`, `default`.
+numbers. The options are `sh`, `bash`, `sh-read`, `read-edit`, `restricted` and
+`default`.
 
 Make clear which capabilities a preset removes — skills, subagents, web access
 and the todo list are tools, so cutting the tool cuts the feature with no
@@ -82,7 +83,7 @@ and nothing else:
 ```bash
 CLAUDECUT_PRESET=sh
 CLAUDECUT_EFFORT=low
-CLAUDECUT_AUTOCOMPACT=200000
+CLAUDECUT_AUTOCOMPACT=300000
 CLAUDECUT_SYSTEM_PROMPT="Coding agent in a git repo. Be concise. Never run destructive git or rm without asking."
 ```
 

@@ -14,7 +14,7 @@ context.
 On two real tasks against a live TypeScript repo, a cut session cost about half
 what stock Claude Code cost, at comparable answer quality. On a long session it
 keeps roughly twice as much working room after every compaction. Startup context
-drops from 17,625 tokens to 895.
+drops from 17,625 tokens to 953.
 
 **How much to trust each of those**, because they are not equally solid:
 
@@ -38,7 +38,7 @@ The last two are where outside data points would help most — see
 
 ```
 claudecut  ──►  Claude Code CLI  ──►  api.anthropic.com
-                (unmodified)          1 tool · 36-token prompt · 200k window
+                (unmodified)          1 tool · 36-token prompt · 300k window
 
 claude     ──►  Claude Code CLI  ──►  api.anthropic.com
                 (unmodified)          the full thing, untouched
@@ -60,7 +60,7 @@ a prompt that uses no tools:
 
 | preset | prompt tokens | what you keep |
 |---|---:|---|
-| `sh` | 895 | one shell tool, and nothing else |
+| `sh` | 953 | one shell tool, and nothing else |
 | `sh-read` | 1,503 | shell + native file reader |
 | `read-edit` | 2,087 | shell + Read, Edit, Write |
 | `restricted` | 11,612 | everything that does not execute code |

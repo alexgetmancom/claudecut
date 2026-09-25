@@ -97,7 +97,7 @@ From the `hello` task, which uses no tools:
 
 | preset | prompt tokens |
 |---|---:|
-| `sh` | 895 |
+| `sh` | 953 |
 | `default` | 17,625 |
 
 The system prompt of a cut session is 36 tokens, per `/context` in a live
@@ -109,9 +109,10 @@ saves tens of tokens; cutting tools saves thousands.
 Two settings that do work in `~/.claude/settings.json`, and that cost nothing to
 turn on:
 
-- `"autoCompactWindow": 200000` — caps the context window so the session
-  compacts earlier instead of growing into a larger one. Also available per run
-  as `--autocompact`, which is what claudecut passes.
+- `"autoCompactWindow": 300000` — sets the context window at which the session
+  compacts instead of growing further. Also available per run as
+  `--autocompact`, which is what claudecut passes; when both are set, the
+  setting wins.
 - `"modelSettings": { "claude-opus-5": { "effortLevel": "low" } }` — a default
   effort level per model. Also `--effort`.
 

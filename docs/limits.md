@@ -30,7 +30,7 @@ number is purely what a session costs before doing anything.
 
 | preset | prompt tokens | CLI-reported cost of one trivial turn |
 |---|---:|---:|
-| `sh` | 895 | $0.0090 |
+| `sh` | 953 | $0.0096 |
 | `default` | 17,625 | $0.0990 |
 
 Twenty times smaller on the wire. Almost all of the difference is tool schemas,

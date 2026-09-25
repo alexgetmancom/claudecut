@@ -11,8 +11,14 @@ CLAUDECUT_ROOT="${CLAUDECUT_ROOT:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")
 # The whole system prompt. Replaces Claude Code's default one.
 CLAUDECUT_SYSTEM_PROMPT="${CLAUDECUT_SYSTEM_PROMPT:-Coding agent in a git repo. Be concise. Never run destructive git or rm without asking.}"
 
-# Auto-compact window. Smaller window = earlier compaction = predictable spend.
-CLAUDECUT_AUTOCOMPACT="${CLAUDECUT_AUTOCOMPACT:-200000}"
+# Auto-compact window. Smaller window = earlier compaction = predictable spend,
+# larger = fewer compactions and less re-reading after each one. 300k is the
+# default because on a long session the compactions themselves are the expensive
+# part; drop it if you would rather cap what a single turn can cost.
+#
+# A value in `autoCompactWindow` in ~/.claude/settings.json wins over the
+# --autocompact flag passed here, so set it in one place or the other.
+CLAUDECUT_AUTOCOMPACT="${CLAUDECUT_AUTOCOMPACT:-300000}"
 
 # Effort level, when the model exposes one: low, medium, high, xhigh, max.
 CLAUDECUT_EFFORT="${CLAUDECUT_EFFORT:-low}"
@@ -42,7 +48,7 @@ claudecut_bench_pin() {
 }
 
 claudecut_presets() {
-  printf '%s\n' sh sh-read read-edit restricted default
+  printf '%s\n' sh bash sh-read read-edit restricted default
 }
 
 claudecut_preset_flags() {
@@ -60,6 +66,13 @@ claudecut_preset_flags() {
   case "$preset" in
     # One tool total: the shell. Read, inspect and write all happen through it.
     sh)         printf '%s\n' "${common[@]}" --tools= ;;
+
+    # The native Bash tool instead of the MCP shell: no MCP server to launch,
+    # but Claude Code's own Bash schema in place of mini-sh's three lines.
+    bash)       printf '%s\n' --system-prompt "$CLAUDECUT_SYSTEM_PROMPT" \
+                  --autocompact "$CLAUDECUT_AUTOCOMPACT" --strict-mcp-config \
+                  ${CLAUDECUT_EFFORT:+--effort} ${CLAUDECUT_EFFORT:+"$CLAUDECUT_EFFORT"} \
+                  --tools=Bash ;;
 
     # Shell plus the native reader, for cheaper file reads with line numbers.
     sh-read)    printf '%s\n' "${common[@]}" --tools=Read ;;

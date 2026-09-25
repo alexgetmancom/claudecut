@@ -17,11 +17,20 @@ it has done anything: the system prompt plus every tool schema.
 
 | preset | prompt tokens | cost of one trivial turn | vs. stock |
 |---|---:|---:|---:|
-| `sh` | 895 | $0.0090 | 20x smaller |
+| `sh` | 953 | $0.0096 | 18x smaller |
+| `bash` | 2,079 | $0.0209 | 8.5x |
 | `sh-read` | 1,503 | $0.0151 | 12x |
 | `read-edit` | 2,087 | $0.0210 | 8x |
 | `restricted` | 11,612 | $0.0465 | 1.5x |
 | `default` | 17,625 | $0.0990 | — |
+
+`bash` is now measured, and it is the more expensive of the two one-shell
+presets: Claude Code's own Bash schema costs about **1,200 tokens more per
+request** than mini-sh's three lines, and that difference is paid on every single
+request for the life of the session. On the `inspect` task, two runs per arm,
+`sh` averaged 7.2k prompt tokens against 10.9k for `bash` at equal answer
+quality — directionally 20–50% more, though the spread between identical runs is
+wide enough that only the fixed 1.2k above should be treated as solid.
 
 Claude Code v2.1.278, Opus 5 at low effort, one run each. Reproduce with
 `bench/run.sh --tasks hello --repeat 5`, and expect your own numbers to differ:
@@ -54,6 +63,29 @@ them with `git diff` like any other change.
 
 **Suits:** work in one repo where you already know your way around, and where
 the shell is the interface you would have reached for anyway.
+
+### `bash` — the native shell instead of ours
+
+```
+--tools=Bash
+```
+
+The same bet as `sh` — one tool, and it is a shell — but Claude Code's own Bash
+tool rather than [`mini-sh`](../mini-sh/server.mjs), so there is no MCP server
+to launch and no `--mcp-config`. What you give up is everything mini-sh does on
+top of a bare shell: the zsh prelude that stops an unquoted glob or a leading
+`=` from killing a command, the `timeout` shim macOS otherwise lacks, and
+output clipped head-and-tail instead of from one end. Those exist because a
+measured session lost 4% of its calls to their absence — see
+[`docs/knobs.md`](knobs.md#the-shell-the-one-tool-runs-in).
+
+Against that, the native tool is better integrated: the permission prompts are
+the ones you know, and its schema is Anthropic's rather than our three lines.
+That schema is also the whole cost difference — 2,079 prompt tokens against 953,
+measured on `hello`.
+
+**Suits:** wanting one shell and no MCP process at all, or checking how much of
+`sh`'s cost is the MCP boundary.
 
 ### `sh-read` — one tool plus the reader
 
