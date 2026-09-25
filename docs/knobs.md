@@ -206,6 +206,15 @@ is 3.2.57, with no associative arrays, no `${var,,}` and no `mapfile`, and it
 reads none of a zsh user's rc files — in a clean environment `bash -lc` resolves
 `python3` to `/usr/bin/python3` where `zsh -lc` resolves the Homebrew one.
 
+One more thing the shell costs, found the same way. The server used to run
+commands with `spawnSync`, which serialises everything: while one command ran,
+every later call waited behind it. In the measured session six calls — one of
+them a bare `echo ping` — sat until the client gave up at 120 seconds and moved
+them to the background. `mini-sh` now spawns asynchronously, so a slow command
+delays only itself. Worth knowing either way: **the client backgrounds an MCP
+call after 120s**, which is the real ceiling on how long a command can block a
+turn, whatever `CLAUDECUT_SH_TIMEOUT_MS` says.
+
 | knob | default |
 |---|---|
 | `CLAUDECUT_CWD` | where claudecut was launched; every command starts there, and the tool description says so, which is what stops the model writing `cd /absolute/path &&` in front of 894 commands out of 908 |

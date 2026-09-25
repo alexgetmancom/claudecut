@@ -4,7 +4,7 @@
 // context window, because the schema is three lines long.
 //
 // Runs on Node 18+ or Bun. No dependencies, no build step.
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
 const SHELL = process.env.CLAUDECUT_SHELL || "zsh";
@@ -90,32 +90,51 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       return reply({ tools: [tool] });
 
     case "tools/call": {
-      // A login shell, so PATH and tooling match the user's own terminal.
-      const r = spawnSync(SHELL, ["-lc", PRELUDE + req.params.arguments.cmd], {
+      // Asynchronous on purpose. The first version used spawnSync, which
+      // serialised the whole server: a `sleep 240` left every later call
+      // queued behind it, and in one measured session six calls — including a
+      // bare `echo ping` — sat for 120s until the client gave up on them and
+      // moved them to the background. Nothing about running a command needs
+      // the event loop held.
+      const child = spawn(SHELL, ["-lc", PRELUDE + req.params.arguments.cmd], {
         cwd: CWD,
-        encoding: "utf8",
-        timeout: TIMEOUT_MS,
-        maxBuffer: 1 << 26,
+        stdio: ["ignore", "pipe", "pipe"],
       });
-      const body = `${r.stdout ?? ""}${r.stderr ?? ""}`;
-      const notes = [];
-      // spawnSync reports a timeout or a failure to start in `error`, with no
-      // exit status at all. Saying so beats returning an empty result.
-      if (r.error) {
-        notes.push(
-          r.error.code === "ETIMEDOUT"
-            ? `[timed out after ${TIMEOUT_MS}ms]`
-            : `[failed to run: ${r.error.message}]`,
-        );
-      }
-      if (r.signal) notes.push(`[killed by ${r.signal}]`);
-      if (r.status) notes.push(`[exit ${r.status}]`);
 
-      const text = clip(body) + (notes.length ? `\n${notes.join(" ")}` : "");
-      return reply({
-        content: [{ type: "text", text: text || "(no output)" }],
-        isError: r.status !== 0 || Boolean(r.error),
-      });
+      let body = "";
+      let killedByTimeout = false;
+      let done = false;
+      const take = (chunk) => {
+        // Bound what is held in memory; clip() decides what is returned.
+        if (body.length < MAX_OUTPUT * 8) body += chunk;
+      };
+      child.stdout.on("data", (c) => take(String(c)));
+      child.stderr.on("data", (c) => take(String(c)));
+
+      const timer = setTimeout(() => {
+        killedByTimeout = true;
+        child.kill("SIGKILL");
+      }, TIMEOUT_MS);
+
+      const finish = (status, signal, error) => {
+        if (done) return; // 'error' and 'close' can both fire.
+        done = true;
+        clearTimeout(timer);
+        const notes = [];
+        if (killedByTimeout) notes.push(`[timed out after ${TIMEOUT_MS}ms]`);
+        else if (error) notes.push(`[failed to run: ${error.message}]`);
+        if (signal && !killedByTimeout) notes.push(`[killed by ${signal}]`);
+        if (status) notes.push(`[exit ${status}]`);
+        const text = clip(body) + (notes.length ? `\n${notes.join(" ")}` : "");
+        reply({
+          content: [{ type: "text", text: text || "(no output)" }],
+          isError: Boolean(status) || Boolean(error) || killedByTimeout,
+        });
+      };
+
+      child.on("error", (e) => finish(null, null, e));
+      child.on("close", (status, signal) => finish(status, signal, null));
+      return;
     }
 
     default:
